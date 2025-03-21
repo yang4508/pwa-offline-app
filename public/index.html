@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>點餐系統</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>點餐系統</h1>
+    <button id="newOrderButton">開新單</button>
+    <button id="openModalButton">新增餐點</button>
+    <div class="menu">
+      <h2>新增餐點</h2>
+      <div class="item">
+        <span>原味雞蛋糕 - $50</span>
+        <button class="decrement">-</button>
+        <span class="quantity">0</span>
+        <button class="increment">+</button>
+      </div>
+      <div class="item">
+        <span>巧克力雞蛋糕 - $60</span>
+        <button class="decrement">-</button>
+        <span class="quantity">0</span>
+        <button class="increment">+</button>
+      </div>
+      <div class="item">
+        <span>抹茶雞蛋糕 - $65</span>
+        <button class="decrement">-</button>
+        <span class="quantity">0</span>
+        <button class="increment">+</button>
+      </div>
+    </div>
+    <div class="summary">
+      <h2>總計：$<span id="total">0</span> 份數：<span id="count">0</span></h2>
+      <button id="addOrder">加入訂單</button>
+    </div>
+    <div class="orders">
+      <button id="viewCurrentOrders">查看進行中的單</button>
+      <button id="viewHistory">歷史訂單</button>
+    </div>
+  </div>
+
+  <!-- 新增餐點模態框 -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('modal')">&times;</span>
+      <h2>新增餐點</h2>
+      <input type="text" id="itemNameInput" placeholder="品項名稱">
+      <input type="number" id="itemPriceInput" placeholder="金額">
+      <button id="addItemButton">新增</button>
+    </div>
+  </div>
+
+  <!-- 進行中的單模態框 -->
+  <div id="currentOrdersModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('currentOrdersModal')">&times;</span>
+      <h2>進行中的單</h2>
+      <div id="currentOrdersList"></div>
+    </div>
+  </div>
+
+  <!-- 歷史訂單模態框 -->
+  <div id="historyOrdersModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('historyOrdersModal')">&times;</span>
+      <h2>歷史訂單</h2>
+      <input type="date" id="historyDate" onchange="loadHistoryOrders()">
+      <div id="historyOrdersList"></div>
+      <p>總金額：$<span id="historyTotal">0</span></p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
