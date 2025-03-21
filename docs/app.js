@@ -5,7 +5,7 @@ let orderIdCounter = 1;
 
 // 初始化 IndexedDB
 function initDB() {
-  const request = indexedDB.open('OrderDB', 1);
+  const request = indexedDB.open('OrderDB', 2); // 版本號升級為 2
 
   request.onupgradeneeded = (event) => {
     db = event.target.result;
@@ -14,6 +14,9 @@ function initDB() {
     }
     if (!db.objectStoreNames.contains('historyOrders')) {
       db.createObjectStore('historyOrders', { keyPath: 'id' });
+    }
+    if (!db.objectStoreNames.contains('metadata')) {
+      db.createObjectStore('metadata', { keyPath: 'key' });
     }
   };
 
@@ -30,9 +33,10 @@ function initDB() {
 
 // 從 IndexedDB 加載數據
 function loadFromIndexedDB() {
-  const transaction = db.transaction(['currentOrders', 'historyOrders'], 'readonly');
+  const transaction = db.transaction(['currentOrders', 'historyOrders', 'metadata'], 'readonly');
   const currentOrdersStore = transaction.objectStore('currentOrders');
   const historyOrdersStore = transaction.objectStore('historyOrders');
+  const metadataStore = transaction.objectStore('metadata');
 
   currentOrdersStore.getAll().onsuccess = (event) => {
     currentOrders = event.target.result || [];
@@ -42,6 +46,15 @@ function loadFromIndexedDB() {
   historyOrdersStore.getAll().onsuccess = (event) => {
     historyOrders = event.target.result || [];
     loadHistoryOrders();
+  };
+
+  metadataStore.get('orderIdCounter').onsuccess = (event) => {
+    const metadata = event.target.result;
+    if (metadata) {
+      orderIdCounter = metadata.value;
+    } else {
+      orderIdCounter = 1; // 如果沒有保存過，則從 1 開始
+    }
   };
 }
 
@@ -53,6 +66,13 @@ function saveToIndexedDB(storeName, data) {
   data.forEach(order => {
     store.put(order);
   });
+}
+
+// 保存 orderIdCounter
+function saveOrderIdCounter() {
+  const transaction = db.transaction('metadata', 'readwrite');
+  const metadataStore = transaction.objectStore('metadata');
+  metadataStore.put({ key: 'orderIdCounter', value: orderIdCounter });
 }
 
 // 綁定事件監聽器
@@ -165,6 +185,7 @@ function addOrder() {
 
     currentOrders.push(order);
     saveToIndexedDB('currentOrders', currentOrders); // 保存到 IndexedDB
+    saveOrderIdCounter(); // 保存 orderIdCounter
     alert('訂單已加入！');
     resetOrder();
   } else {
