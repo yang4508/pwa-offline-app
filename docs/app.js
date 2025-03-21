@@ -1,6 +1,59 @@
+let db; // IndexedDB 數據庫實例
 let currentOrders = [];
 let historyOrders = [];
 let orderIdCounter = 1;
+
+// 初始化 IndexedDB
+function initDB() {
+  const request = indexedDB.open('OrderDB', 1);
+
+  request.onupgradeneeded = (event) => {
+    db = event.target.result;
+    if (!db.objectStoreNames.contains('currentOrders')) {
+      db.createObjectStore('currentOrders', { keyPath: 'id' });
+    }
+    if (!db.objectStoreNames.contains('historyOrders')) {
+      db.createObjectStore('historyOrders', { keyPath: 'id' });
+    }
+  };
+
+  request.onsuccess = (event) => {
+    db = event.target.result;
+    console.log('Database initialized');
+    loadFromIndexedDB(); // 加載數據
+  };
+
+  request.onerror = (event) => {
+    console.error('Error opening database', event.target.error);
+  };
+}
+
+// 從 IndexedDB 加載數據
+function loadFromIndexedDB() {
+  const transaction = db.transaction(['currentOrders', 'historyOrders'], 'readonly');
+  const currentOrdersStore = transaction.objectStore('currentOrders');
+  const historyOrdersStore = transaction.objectStore('historyOrders');
+
+  currentOrdersStore.getAll().onsuccess = (event) => {
+    currentOrders = event.target.result || [];
+    loadCurrentOrders();
+  };
+
+  historyOrdersStore.getAll().onsuccess = (event) => {
+    historyOrders = event.target.result || [];
+    loadHistoryOrders();
+  };
+}
+
+// 保存數據到 IndexedDB
+function saveToIndexedDB(storeName, data) {
+  const transaction = db.transaction(storeName, 'readwrite');
+  const store = transaction.objectStore(storeName);
+
+  data.forEach(order => {
+    store.put(order);
+  });
+}
 
 // 綁定事件監聽器
 document.querySelectorAll('.increment').forEach(button => {
@@ -111,6 +164,7 @@ function addOrder() {
     });
 
     currentOrders.push(order);
+    saveToIndexedDB('currentOrders', currentOrders); // 保存到 IndexedDB
     alert('訂單已加入！');
     resetOrder();
   } else {
@@ -191,13 +245,19 @@ function loadHistoryOrders() {
 
 // 刪除訂單
 function deleteOrder(orderId, type) {
-  if (type === 'current') {
-    currentOrders = currentOrders.filter(order => order.id !== orderId);
+  const storeName = type === 'current' ? 'currentOrders' : 'historyOrders';
+  const transaction = db.transaction(storeName, 'readwrite');
+  const store = transaction.objectStore(storeName);
+
+  store.delete(orderId).onsuccess = () => {
+    if (type === 'current') {
+      currentOrders = currentOrders.filter(order => order.id !== orderId);
+    } else {
+      historyOrders = historyOrders.filter(order => order.id !== orderId);
+    }
     loadCurrentOrders();
-  } else {
-    historyOrders = historyOrders.filter(order => order.id !== orderId);
     loadHistoryOrders();
-  }
+  };
 }
 
 // 完成訂單
@@ -206,6 +266,10 @@ function completeOrder(orderId) {
   if (order) {
     historyOrders.push(order);
     currentOrders = currentOrders.filter(order => order.id !== orderId);
+
+    saveToIndexedDB('currentOrders', currentOrders); // 更新 currentOrders
+    saveToIndexedDB('historyOrders', historyOrders); // 更新 historyOrders
+
     loadCurrentOrders();
     loadHistoryOrders();
   }
@@ -238,4 +302,9 @@ document.getElementById('viewCurrentOrders').addEventListener('click', () => {
 document.getElementById('viewHistory').addEventListener('click', () => {
   document.getElementById('historyOrdersModal').style.display = 'flex';
   loadHistoryOrders();
+});
+
+// 初始化 IndexedDB
+document.addEventListener('DOMContentLoaded', () => {
+  initDB();
 });
