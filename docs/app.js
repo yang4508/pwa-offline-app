@@ -262,16 +262,24 @@ function deleteOrder(orderId, type) {
 
 // 完成訂單
 function completeOrder(orderId) {
-  const order = currentOrders.find(order => order.id === orderId);
-  if (order) {
-    historyOrders.push(order);
-    currentOrders = currentOrders.filter(order => order.id !== orderId);
+  const orderIndex = currentOrders.findIndex(order => order.id === orderId);
+  if (orderIndex !== -1) {
+    const order = currentOrders[orderIndex];
+    historyOrders.push(order); // 添加到歷史訂單
+    currentOrders.splice(orderIndex, 1); // 從進行中的訂單中移除
 
-    saveToIndexedDB('currentOrders', currentOrders); // 更新 currentOrders
-    saveToIndexedDB('historyOrders', historyOrders); // 更新 historyOrders
+    // 保存到 IndexedDB
+    const transaction = db.transaction(['currentOrders', 'historyOrders'], 'readwrite');
+    const currentOrdersStore = transaction.objectStore('currentOrders');
+    const historyOrdersStore = transaction.objectStore('historyOrders');
 
-    loadCurrentOrders();
-    loadHistoryOrders();
+    currentOrdersStore.delete(orderId); // 從 currentOrders 中刪除
+    historyOrdersStore.put(order); // 添加到 historyOrders
+
+    transaction.oncomplete = () => {
+      loadCurrentOrders();
+      loadHistoryOrders();
+    };
   }
 }
 
